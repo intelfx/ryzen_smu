@@ -1,18 +1,20 @@
-CC = gcc
-STRIP = strip
+CC ?= gcc
+CFLAGS ?= -O3 -mtune=native -march=native
 
-CFLAGS = -O3 -mtune=native -march=native
-LDFLAGS = -lm
-
-SFLAGS = --strip-all
-
-PATHS = -I"../lib"
+override CFLAGS += -Ilib
+LDLIBS = -lm
 
 OUT = monitor_cpu
+SRC = \
+      monitor_cpu.c \
+      lib/libsmu.c \
+      # EOL
+OBJ = $(SRC:.c=.o)
 
-SRC = monitor_cpu.c
-SRC += "../lib/libsmu.c"
+all: $(OUT)
 
-all: monitor_cpu.c ../lib/libsmu.c
-	$(CC) $(PATHS) $(CFLAGS) $(LDFLAGS) -o $(OUT) $(SRC)
-	$(STRIP) $(SFLAGS) $(OUT)
+$(OUT): $(OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+clean:
+	rm -rf *.o lib/*.o
