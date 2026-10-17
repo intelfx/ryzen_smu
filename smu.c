@@ -171,7 +171,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
     return SMU_Return_Unsupported;
 
   pr_debug(
-      "SMU [%s] Service Request: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
+      "SMU [%s] Service Request: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)\n",
       mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5);
 
@@ -269,7 +269,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   mutex_unlock(&amd_smu_mutex);
 
   pr_debug(
-      "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = Ret(%Xh)",
+      "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = Ret(%Xh)\n",
       mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5, tmp);
 
@@ -292,7 +292,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
   // See: CPUID_Fn80000001_EBX
   pkg_type = cpuid_ebx(0x80000001) >> 28;
 
-  pr_info("CPUID: family 0x%X, model 0x%X, stepping 0x%X, package 0x%X",
+  pr_info("CPUID: family 0x%X, model 0x%X, stepping 0x%X, package 0x%X\n",
           cpu_family, cpu_model, stepping, pkg_type);
 
   // Zen / Zen+ / Zen2
@@ -341,7 +341,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
       break;
     default:
       pr_err(
-          "CPUID: Unknown Zen/Zen+/Zen2 processor model: 0x%X (CPUID: 0x%08X)",
+          "CPUID: Unknown Zen/Zen+/Zen2 processor model: 0x%X (CPUID: 0x%08X)\n",
           cpu_model, cpuid);
       return -2;
     }
@@ -385,7 +385,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
       g_smu.codename = CODENAME_HAWKPOINT;
       break;
     default:
-      pr_err("CPUID: Unknown Zen3/4 processor model: 0x%X (CPUID: 0x%08X)",
+      pr_err("CPUID: Unknown Zen3/4 processor model: 0x%X (CPUID: 0x%08X)\n",
              cpu_model, cpuid);
       return -2;
     }
@@ -411,7 +411,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
       g_smu.codename = CODENAME_STRIXHALO;
       break;
     default:
-      pr_err("CPUID: Unknown Zen5/6 processor model: 0x%X (CPUID: 0x%08X)",
+      pr_err("CPUID: Unknown Zen5/6 processor model: 0x%X (CPUID: 0x%08X)\n",
              cpu_model, cpuid);
       return -2;
     }
@@ -420,7 +420,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
 
   else {
     pr_err("CPUID: failed to detect Zen processor family "
-           "(%Xh).",
+           "(%Xh).\n",
            cpu_family);
     return -1;
   }
@@ -483,15 +483,15 @@ int smu_init(struct pci_dev *dev) {
     g_smu.addr_rsmu_mb_args = 0x3B10A40;
     goto LOG_RSMU;
   case CODENAME_VANGOGH:
-    pr_debug("RSMU Mailbox: Not supported or unknown, disabling use.");
+    pr_debug("RSMU Mailbox: Not supported or unknown, disabling use.\n");
     goto MP1_DETECT;
   default:
-    pr_err("Unknown processor codename: %d", g_smu.codename);
+    pr_err("Unknown processor codename: %d\n", g_smu.codename);
     return -ENODEV;
   }
 
 LOG_RSMU:
-  pr_debug("RSMU Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)",
+  pr_debug("RSMU Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)\n",
            g_smu.addr_rsmu_mb_cmd, g_smu.addr_rsmu_mb_rsp,
            g_smu.addr_rsmu_mb_args);
 
@@ -530,12 +530,12 @@ LOG_RSMU:
   case CODENAME_SHIMADAPEAK: // HSMP address unpublished for this part
     goto MP1_DETECT;
   default:
-    pr_err("Unknown processor codename: %d", g_smu.codename);
+    pr_err("Unknown processor codename: %d\n", g_smu.codename);
     return -ENODEV;
   }
 
 LOG_HSMP:
-  pr_debug("HSMP Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)",
+  pr_debug("HSMP Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)\n",
            g_smu.addr_hsmp_mb_cmd, g_smu.addr_hsmp_mb_rsp,
            g_smu.addr_hsmp_mb_args);
 
@@ -605,15 +605,15 @@ MP1_DETECT:
     g_smu.mp1_if_ver = IF_VERSION_COUNT;
     break;
   default:
-    pr_err("Unknown processor codename: %d", g_smu.codename);
+    pr_err("Unknown processor codename: %d\n", g_smu.codename);
     return -ENODEV;
   }
 
-  pr_debug("MP1 Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)",
+  pr_debug("MP1 Mailbox: (cmd: 0x%X, rsp: 0x%X, args: 0x%X)\n",
            g_smu.addr_mp1_mb_cmd, g_smu.addr_mp1_mb_rsp,
            g_smu.addr_mp1_mb_args);
 
-  pr_info("Family Codename: %s", getCodeName(g_smu.codename));
+  pr_info("Family Codename: %s\n", getCodeName(g_smu.codename));
 
   return 0;
 }
@@ -1383,11 +1383,11 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
 
     ret = smu_update_pmtable_size(version);
     if (ret != SMU_Return_OK) {
-      pr_err("Unknown PM table version: 0x%08X", version);
+      pr_err("Unknown PM table version: 0x%08X\n", version);
       return ret;
     }
 
-    pr_debug("Determined PM mapping size as (%xh,%xh) bytes.",
+    pr_debug("Determined PM mapping size as (%xh,%xh) bytes.\n",
              g_smu.pm_dram_map_size, g_smu.pm_dram_map_size_alt);
   }
 
@@ -1396,7 +1396,7 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
   // size as well
   if (*len < g_smu.pm_dram_map_size) {
     pr_warn(
-        "Insufficient buffer size for PM table read: %lu < %d version: 0x%X",
+        "Insufficient buffer size for PM table read: %lu < %d version: 0x%X\n",
         *len, g_smu.pm_dram_map_size, version);
 
     *len = g_smu.pm_dram_map_size;
@@ -1461,7 +1461,7 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
     g_smu.pm_table_virt_addr = ioremap_cache(g_smu.pm_dram_base, size);
 
     if (g_smu.pm_table_virt_addr == NULL) {
-      pr_err("Failed to map DRAM base: %llX (0x%X B)", g_smu.pm_dram_base,
+      pr_err("Failed to map DRAM base: %llX (0x%X B)\n", g_smu.pm_dram_base,
              size);
       return SMU_Return_MappedError;
     }
@@ -1472,7 +1472,7 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
           ioremap_cache(g_smu.pm_dram_base_alt, g_smu.pm_dram_map_size_alt);
 
       if (g_smu.pm_table_virt_addr_alt == NULL) {
-        pr_err("Failed to map DRAM alt base: %X (0x%X B)",
+        pr_err("Failed to map DRAM alt base: %X (0x%X B)\n",
                g_smu.pm_dram_base_alt, g_smu.pm_dram_map_size_alt);
         iounmap(g_smu.pm_table_virt_addr);
         g_smu.pm_table_virt_addr = NULL;

@@ -373,7 +373,7 @@ static int ryzen_smu_get_version(enum smu_mailbox mb, int show) {
 
     ver = smu_get_version(g_driver.device, mb);
     if (ver >= 0 && ver <= 0xFF) {
-        pr_err("Failed to query the %sSMU version: %d",
+        pr_err("Failed to query the %sSMU version: %d\n",
             mb == MAILBOX_TYPE_RSMU ? "R" : "MP1 ", ver);
         return -EINVAL;
     }
@@ -386,7 +386,7 @@ static int ryzen_smu_get_version(enum smu_mailbox mb, int show) {
         else
             sprintf(g_driver.smu_version, "%d.%d.%d", (ver >> 16) & 0xff, (ver >> 8) & 0xff, ver & 0xff);
 
-        pr_info("SMU v%s", g_driver.smu_version);
+        pr_info("SMU v%s\n", g_driver.smu_version);
     }
 
     return 0;
@@ -410,7 +410,7 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
     drv_attrs[MAX_ATTRS_LEN - 3] = NULL;
     drv_attrs[MAX_ATTRS_LEN - 2] = NULL;
 
-    pr_info("loading version: %s", THIS_MODULE->version);
+    pr_info("loading version: %s\n", THIS_MODULE->version);
 
     // Clamp values.
     if (smu_timeout_attempts > SMU_RETRIES_MAX)
@@ -420,7 +420,7 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
 
     // Detect processor class & figure out MP1/RSMU support.
     if (smu_init(g_driver.device) != 0) {
-        pr_err("Failed to initialize the SMU for use");
+        pr_err("Failed to initialize the SMU for use\n");
         g_driver.device = NULL;
         return -ENODEV;
     }
@@ -428,14 +428,14 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
     // Check if MP1 is working as we guarantee this support, where the mailbox is known.
     if (smu_mp1_available()) {
         if (ryzen_smu_get_version(MAILBOX_TYPE_MP1, 1) != 0) {
-            pr_err("Failed to obtain the SMU version");
+            pr_err("Failed to obtain the SMU version\n");
             smu_cleanup();
             g_driver.device = NULL;
             return -EINVAL;
         }
     }
     else
-        pr_info("MP1 mailbox unknown on this platform, disabled");
+        pr_info("MP1 mailbox unknown on this platform, disabled\n");
 
     // Check if RSMU is valid to determine if to skip PM table setup. Without
     // MP1 the RSMU version is the only one there is, so it is shown.
@@ -448,7 +448,7 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
         drv_attrs[MAX_ATTRS_LEN - 4] = &dev_attr_rsmu_cmd.attr;
     }
     else {
-        pr_info("RSMU Mailbox: Disabled or not responding to commands.");
+        pr_info("RSMU Mailbox: Disabled or not responding to commands.\n");
         goto _CONTINUE_SETUP;
     }
 
@@ -463,39 +463,39 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
         ret = smu_get_pm_table_version(g_driver.device, &g_driver.pm_table_version);
         if (ret != SMU_Return_OK && ret != SMU_Return_Unsupported) {
             pr_err("Unable to resolve which PM table version the system uses -- disabling "
-                "feature (%d)", ret);
+                "feature (%d)\n", ret);
             goto _CONTINUE_SETUP;
         }
 
         g_driver.pm_table = kzalloc(PM_TABLE_MAX_SIZE, GFP_KERNEL);
         if (g_driver.pm_table == NULL) {
             pr_err("Unable to allocate kernel buffer for PM table mapping -- disabling PM table "
-                "feature");
+                "feature\n");
             goto _CONTINUE_SETUP;
         }
 
         // Perform an initial fill of the data for when the device is queued, saving time
-        pr_debug("Probing the PM table for state changes");
+        pr_debug("Probing the PM table for state changes\n");
         ret = smu_read_pm_table(dev, g_driver.pm_table, &g_driver.pm_table_read_size);
         if (ret == SMU_Return_OK) {
-            pr_debug("Probe succeeded: read %zu bytes", g_driver.pm_table_read_size);
+            pr_debug("Probe succeeded: read %zu bytes\n", g_driver.pm_table_read_size);
 
             // A non-zero size publishes the binary pm_table attribute below; the size and
             // version attributes follow it only if that file was created.
             dev_battr_pm_table.size = g_driver.pm_table_read_size;
         }
         else
-            pr_err("Failed to probe the PM table -- disabling feature (%d)", ret);
+            pr_err("Failed to probe the PM table -- disabling feature (%d)\n", ret);
     }
     else {
-        pr_debug("Notice: PM tables are not supported for the current platform (%d)", ret);
+        pr_debug("Notice: PM tables are not supported for the current platform (%d)\n", ret);
     }
 
 _CONTINUE_SETUP:
     // Allocate the sysfs attr group with the parameters for use
     g_driver.drv_kobj = kobject_create_and_add("ryzen_smu_drv", kernel_kobj);
     if (!g_driver.drv_kobj) {
-        pr_err("Unable to create sysfs interface");
+        pr_err("Unable to create sysfs interface\n");
         err = -ENOMEM;
         goto FAIL;
     }
@@ -503,7 +503,7 @@ _CONTINUE_SETUP:
     // The table file first: its size and version attributes are only offered when it exists.
     if (dev_battr_pm_table.size) {
         if (sysfs_create_bin_file(g_driver.drv_kobj, &dev_battr_pm_table)) {
-            pr_err("Unable to create the pm_table attribute -- disabling feature");
+            pr_err("Unable to create the pm_table attribute -- disabling feature\n");
             dev_battr_pm_table.size = 0;
         }
         else {
@@ -516,7 +516,7 @@ _CONTINUE_SETUP:
 
     err = sysfs_create_group(g_driver.drv_kobj, &drv_attr_group);
     if (err) {
-        pr_err("Unable to create sysfs attribute group (%d)", err);
+        pr_err("Unable to create sysfs attribute group (%d)\n", err);
         if (g_driver.pm_table_file) {
             sysfs_remove_bin_file(g_driver.drv_kobj, &dev_battr_pm_table);
             g_driver.pm_table_file = false;
@@ -596,7 +596,7 @@ static int __init ryzen_smu_driver_init(void) {
     // By default the driver will not be used to communicate with the
     //  northbridge so we forcefully tell the system to use it.
     if (pci_register_driver(&ryzen_smu_driver) < 0) {
-        pr_err("Failed to register the PCI driver.");
+        pr_err("Failed to register the PCI driver.\n");
         return 1;
     }
 
