@@ -404,8 +404,8 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
     case 0x44:
       g_smu.codename = CODENAME_GRANITERIDGE;
       break;
-    case 0x60: //Strixpoint Ryzen AI 350
-      g_smu.codename = CODENAME_STRIXPOINT;
+    case 0x60: // Krackan Point (Ryzen AI 5 340, Ryzen AI 7 350)
+      g_smu.codename = CODENAME_KRACKANPOINT;
       break;
     case 0x70: // Strix Halo (AI MAX+ 395)
       g_smu.codename = CODENAME_STRIXHALO;
@@ -470,6 +470,7 @@ int smu_init(struct pci_dev *dev) {
   case CODENAME_STRIXPOINT:
   case CODENAME_HAWKPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
     g_smu.addr_rsmu_mb_cmd = 0x3B10A20;
     g_smu.addr_rsmu_mb_rsp = 0x3B10A80;
     g_smu.addr_rsmu_mb_args = 0x3B10A88;
@@ -527,6 +528,7 @@ LOG_RSMU:
   case CODENAME_STRIXPOINT:
   case CODENAME_HAWKPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
   case CODENAME_SHIMADAPEAK: // HSMP address unpublished for this part
     goto MP1_DETECT;
   default:
@@ -593,6 +595,7 @@ MP1_DETECT:
     break;
   case CODENAME_STRIXPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
     g_smu.mp1_if_ver = IF_VERSION_13;
     g_smu.addr_mp1_mb_cmd = 0x3b10928;
     g_smu.addr_mp1_mb_rsp = 0x3b10978;
@@ -698,6 +701,7 @@ u64 smu_get_dram_base_address(struct pci_dev *dev) {
   case CODENAME_PHOENIX:
   case CODENAME_STRIXPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
   case CODENAME_HAWKPOINT:
     fn[0] = 0x66;
     goto BASE_ADDR_CLASS_1;
@@ -817,6 +821,7 @@ enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
   case CODENAME_PHOENIX:
   case CODENAME_STRIXPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
   case CODENAME_HAWKPOINT:
     args.s.arg0 = 3;
     fn = 0x65;
@@ -917,6 +922,7 @@ enum smu_return_val smu_get_pm_table_version(struct pci_dev *dev,
   case CODENAME_PHOENIX:
   case CODENAME_STRIXPOINT:
   case CODENAME_STRIXHALO:
+  case CODENAME_KRACKANPOINT:
   case CODENAME_HAWKPOINT:
     fn = 0x06;
     break;
@@ -1174,7 +1180,19 @@ u32 smu_update_pmtable_size(u32 version) {
     case 0x5D0009:
       g_smu.pm_dram_map_size = 0xD58;
       break;
-    case 0x650007: // Ryzen AI 7 350 variant
+    default:
+      goto UNKNOWN_PM_TABLE_VERSION;
+    }
+    break;
+  case CODENAME_KRACKANPOINT:
+    switch (version) {
+    case 0x650004:
+      g_smu.pm_dram_map_size = 0xB74;
+      break;
+    case 0x650005:
+      g_smu.pm_dram_map_size = 0xB78;
+      break;
+    case 0x650007: // Ryzen AI 7 350; size not in Ryzen Master, kept as reported
       g_smu.pm_dram_map_size = 0xD54;
       break;
     default:
@@ -1332,6 +1350,7 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
         g_smu.codename == CODENAME_PHOENIX ||
         g_smu.codename == CODENAME_STRIXPOINT ||
         g_smu.codename == CODENAME_STRIXHALO ||
+        g_smu.codename == CODENAME_KRACKANPOINT ||
         g_smu.codename == CODENAME_CEZANNE ||
         g_smu.codename == CODENAME_CHAGALL ||
         g_smu.codename == CODENAME_MILAN ||
