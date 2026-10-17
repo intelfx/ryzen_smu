@@ -1365,6 +1365,8 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
       if (g_smu.pm_table_virt_addr_alt == NULL) {
         pr_err("Failed to map DRAM alt base: %X (0x%X B)",
                g_smu.pm_dram_base_alt, g_smu.pm_dram_map_size_alt);
+        iounmap(g_smu.pm_table_virt_addr);
+        g_smu.pm_table_virt_addr = NULL;
         return SMU_Return_MappedError;
       }
     }
