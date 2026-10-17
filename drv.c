@@ -13,6 +13,7 @@
 #include <linux/jiffies.h>
 #include <linux/atomic.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 #include <linux/sysfs.h>
 #include <uapi/linux/stat.h>
 #include <linux/version.h>
@@ -48,7 +49,7 @@ MODULE_LICENSE("GPL");
 #define PCI_DEVICE_ID_AMD_MI200_ROOT        0x14bb
 #define PCI_DEVICE_ID_AMD_MI300_ROOT        0x14f8
 
-#define MAX_ATTRS_LEN                      13
+#define MAX_ATTRS_LEN                      14
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
     #error "Unsupported kernel version. Minimum: v4.19"
@@ -328,6 +329,84 @@ size_t count) {
     return count;
 }
 
+/*
+ * smu_raw_cmd: one SMU mailbox transaction at caller-supplied addresses.
+ *
+ * write: 10 x u32 { cmd_addr, rsp_addr, args_addr, msg_id, arg0..arg5 }
+ * read:   7 x u32 { status, arg0..arg5 }, status being an smu_return_val
+ *
+ * The transaction runs under the same lock as the driver's own commands, so
+ * tools with their own mailbox tables need not drive the mailbox register by
+ * register through "smn" and race with them. The result belongs to the
+ * process that wrote the request: other processes get -EAGAIN, and a read
+ * before any write gets -ENODATA. Addresses are limited to the C2PMSG window
+ * where all known mailboxes live; arbitrary SMN access stays behind "smn".
+ */
+#define SMU_RAW_WIN_START                  0x03B10000u
+#define SMU_RAW_WIN_END                    0x03B11000u /* exclusive */
+#define SMU_RAW_WR_WORDS                   (4 + SMU_REQ_MAX_ARGS)
+
+static DEFINE_MUTEX(smu_raw_mutex);
+static u32 smu_raw_result[1 + SMU_REQ_MAX_ARGS];
+static pid_t smu_raw_owner;
+
+static bool smu_raw_addr_ok(u32 addr, u32 span) {
+    return !(addr & 0x3) && addr >= SMU_RAW_WIN_START && addr <= SMU_RAW_WIN_END - span;
+}
+
+static ssize_t smu_raw_cmd_show(struct kobject *kobj, struct kobj_attribute *attr, char *buff) {
+    ssize_t ret;
+
+    mutex_lock(&smu_raw_mutex);
+    if (!smu_raw_owner)
+        ret = -ENODATA;
+    else if (smu_raw_owner != task_tgid_nr(current))
+        ret = -EAGAIN;
+    else {
+        memcpy(buff, smu_raw_result, sizeof(smu_raw_result));
+        ret = sizeof(smu_raw_result);
+    }
+    mutex_unlock(&smu_raw_mutex);
+
+    return ret;
+}
+
+static ssize_t smu_raw_cmd_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buff, size_t count) {
+    u32 req[SMU_RAW_WR_WORDS];
+    smu_req_args_t args;
+    enum smu_return_val ret;
+    int i;
+
+    if (count != sizeof(req))
+        return -EINVAL;
+
+    memcpy(req, buff, sizeof(req));
+
+    if (!smu_raw_addr_ok(req[0], sizeof(u32)) || !smu_raw_addr_ok(req[1], sizeof(u32)) ||
+        !smu_raw_addr_ok(req[2], sizeof(u32) * SMU_REQ_MAX_ARGS))
+        return -EINVAL;
+
+    for (i = 0; i < SMU_REQ_MAX_ARGS; i++)
+        args.args[i] = req[4 + i];
+
+    mutex_lock(&smu_raw_mutex);
+
+    ret = smu_send_command_at(g_driver.device, req[3], &args, req[0], req[1], req[2], "raw");
+
+    smu_raw_result[0] = ret;
+    for (i = 0; i < SMU_REQ_MAX_ARGS; i++)
+        smu_raw_result[1 + i] = ret == SMU_Return_OK ? args.args[i] : 0;
+    smu_raw_owner = task_tgid_nr(current);
+
+    mutex_unlock(&smu_raw_mutex);
+
+    // The SMU's verdict is reported through the read side, not errno.
+    return count;
+}
+
+static struct kobj_attribute dev_attr_smu_raw_cmd =
+    __ATTR(smu_raw_cmd, S_IRUSR | S_IWUSR, smu_raw_cmd_show, smu_raw_cmd_store);
+
 __RO_ATTR (drv_version);
 __RO_ATTR (version);
 __RO_ATTR (mp1_if_version);
@@ -356,6 +435,7 @@ static struct attribute *drv_attrs[MAX_ATTRS_LEN] = {
     &dev_attr_hsmp_smu_cmd.attr,
 
     &dev_attr_smn.attr,
+    &dev_attr_smu_raw_cmd.attr,
 
     // -- NOTE: Do not edit below here. --
 

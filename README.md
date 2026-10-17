@@ -77,6 +77,7 @@ permissions (for obvious reasons) at the root path `/sys/kernel/ryzen_smu_drv`:
 - `mp1_smu_cmd`
 - `hsmp_smu_cmd`
 - `smn`
+- `smu_raw_cmd`
 - `rsmu_cmd` (Not present on `Vangogh`)
 
 For supported PM table models where RSMU is also supported, the following files are additionally
@@ -347,6 +348,21 @@ The amount of bytes written indicates the operation performed:
 | 64           | Write     | Writes the second 32-bit value to the address specified by the first 32 bits |
 
 Note: All values sent to and read from the device must are in little-endian binary format.
+
+#### `/sys/kernel/ryzen_smu_drv/smu_raw_cmd`
+
+Executes one complete SMU mailbox transaction at caller-supplied register addresses, under the same
+lock as every command the driver itself sends. This lets tools with their own mailbox tables avoid
+driving the mailbox register by register through `smn`, where they would race with the driver.
+
+Write ten 32-bit little-endian words: `cmd_addr`, `rsp_addr`, `args_addr`, the message ID and six
+arguments. All addresses must be 4-byte aligned and lie within `0x03B10000`-`0x03B10FFF`.
+
+Reading returns seven 32-bit words: the status (see the table under `rsmu_cmd`) followed by the six
+returned arguments, which are zero unless the status is OK. Only the process that wrote the request
+can read its result; other processes get `EAGAIN`, and reading before any write gives `ENODATA`.
+
+This file is only accessible to root.
 
 #### `/sys/kernel/ryzen_smu_drv/pm_table_size`
 
