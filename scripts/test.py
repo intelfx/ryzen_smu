@@ -158,15 +158,26 @@ def test_get_version():
     if args == False:
         return False
 
-    v_test = "{:d}.{:d}.{:d}".format(
-        args[0] >> 16 & 0xFF, args[0] >> 8 & 0xFF, args[0] & 0xFF
-    )
+    # Same formatting as the driver: four components when the top byte is set.
+    ver = args[0]
+    if ver & 0xFF000000:
+        v_test = "{:d}.{:d}.{:d}.{:d}".format(
+            ver >> 24 & 0xFF, ver >> 16 & 0xFF, ver >> 8 & 0xFF, ver & 0xFF
+        )
+    else:
+        v_test = "{:d}.{:d}.{:d}".format(ver >> 16 & 0xFF, ver >> 8 & 0xFF, ver & 0xFF)
 
-    if v_test == read_file_str(VER_PATH, 8):
-        print("Retrieved SMU Version: v{0}".format(v_test.split("\n")[0]))
+    try:
+        with open(VER_PATH, "r") as fp:
+            v_drv = fp.read().strip()
+    except OSError:
+        v_drv = None
+
+    if v_test == v_drv:
+        print("Retrieved SMU Version: v{0}".format(v_test))
         return True
 
-    print("SMU Test: Failed!")
+    print("SMU Test: Failed! ({0} != {1})".format(v_test, v_drv))
     return False
 
 
