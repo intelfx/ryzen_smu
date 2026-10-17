@@ -1378,33 +1378,12 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
     // future.
     version = 0xDEADC0DE;
 
-    // These models require finding the PM table version to determine its size.
-    if (g_smu.codename == CODENAME_CASTLEPEAK ||
-        g_smu.codename == CODENAME_VERMEER ||
-        g_smu.codename == CODENAME_MATISSE ||
-        g_smu.codename == CODENAME_RAPHAEL ||
-        g_smu.codename == CODENAME_DRAGONRANGE ||
-        g_smu.codename == CODENAME_GRANITERIDGE ||
-        g_smu.codename == CODENAME_RENOIR ||
-        g_smu.codename == CODENAME_LUCIENNE ||
-        g_smu.codename == CODENAME_REMBRANDT ||
-        g_smu.codename == CODENAME_PHOENIX ||
-        g_smu.codename == CODENAME_STRIXPOINT ||
-        g_smu.codename == CODENAME_STRIXHALO ||
-        g_smu.codename == CODENAME_KRACKANPOINT ||
-        g_smu.codename == CODENAME_CEZANNE ||
-        g_smu.codename == CODENAME_CHAGALL ||
-        g_smu.codename == CODENAME_MILAN ||
-        g_smu.codename == CODENAME_HAWKPOINT ||
-        g_smu.codename == CODENAME_STORMPEAK ||
-        g_smu.codename == CODENAME_SHIMADAPEAK ||
-        g_smu.codename == CODENAME_TURIN) {
-      ret = smu_get_pm_table_version(dev, &version);
-
-      if (ret != SMU_Return_OK) {
-        pr_err("Failed to get PM Table version with error: %X\n", ret);
-        return ret;
-      }
+    // Codenames with several PM table layouts report a version that selects the
+    // size; the others return SMU_Return_Unsupported and use a fixed size.
+    ret = smu_get_pm_table_version(dev, &version);
+    if (ret != SMU_Return_OK && ret != SMU_Return_Unsupported) {
+      pr_err("Failed to get PM Table version with error: %X\n", ret);
+      return ret;
     }
 
     ret = smu_update_pmtable_size(version);
