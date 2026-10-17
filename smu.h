@@ -109,6 +109,15 @@ enum smu_return_val smu_send_command(struct pci_dev* dev, u32 op, smu_req_args_t
     enum smu_mailbox mailbox);
 
 /**
+ * Executes one mailbox transaction against explicit register addresses, under
+ * the same lock as every other command sent by the driver.
+ *
+ * Returns an smu_return_val indicating the status of the operation.
+ */
+enum smu_return_val smu_send_command_at(struct pci_dev* dev, u32 op, smu_req_args_t* args,
+    u32 cmd_addr, u32 rsp_addr, u32 args_addr, const char *mailbox_name);
+
+/**
  * Returns the current SMU firmware version from the specified mailbox.
  */
 u32 smu_get_version(struct pci_dev* dev, enum smu_mailbox mb);

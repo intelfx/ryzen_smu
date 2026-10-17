@@ -154,8 +154,7 @@ void smu_args_init(smu_req_args_t *args, u32 value) {
 enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
                                      smu_req_args_t *args,
                                      enum smu_mailbox mailbox) {
-  u32 retries, tmp, i, rsp_addr, args_addr, cmd_addr;
-  enum smu_return_val ret;
+  u32 rsp_addr, args_addr, cmd_addr;
 
   // == Pick the correct mailbox address. ==
   switch (mailbox) {
@@ -183,9 +182,20 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   if (!rsp_addr || !cmd_addr || !args_addr)
     return SMU_Return_Unsupported;
 
+  return smu_send_command_at(dev, op, args, cmd_addr, rsp_addr, args_addr,
+                             mailbox_str[mailbox]);
+}
+
+enum smu_return_val smu_send_command_at(struct pci_dev *dev, u32 op,
+                                        smu_req_args_t *args, u32 cmd_addr,
+                                        u32 rsp_addr, u32 args_addr,
+                                        const char *mailbox_name) {
+  u32 retries, tmp, i;
+  enum smu_return_val ret;
+
   pr_debug(
       "SMU [%s] Service Request: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)\n",
-      mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
+      mailbox_name, op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5);
 
   mutex_lock(&amd_smu_mutex);
@@ -201,7 +211,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   for (retries = smu_timeout_attempts; retries; retries--) {
     if (smu_read_address(dev, rsp_addr, &tmp) != SMU_Return_OK) {
       mutex_unlock(&amd_smu_mutex);
-      pr_warn("Failed to perform initial probe on SMU [%s] RSP!\n", mailbox_str[mailbox]);
+      pr_warn("Failed to perform initial probe on SMU [%s] RSP!\n", mailbox_name);
 
       return SMU_Return_PCIFailed;
     }
@@ -215,7 +225,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   if (!tmp) {
     mutex_unlock(&amd_smu_mutex);
     pr_warn("SMU [%s] Service Request Failed: Timeout on initial wait for mailbox "
-            "availability.\n", mailbox_str[mailbox]);
+            "availability.\n", mailbox_name);
 
     return SMU_Return_CommandTimeout;
   }
@@ -233,7 +243,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
 
   if (ret != SMU_Return_OK) {
     mutex_unlock(&amd_smu_mutex);
-    pr_warn("Failed to write the SMU [%s] mailbox for command 0x%x!\n", mailbox_str[mailbox], op);
+    pr_warn("Failed to write the SMU [%s] mailbox for command 0x%x!\n", mailbox_name, op);
 
     return SMU_Return_PCIFailed;
   }
@@ -243,7 +253,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   for (retries = smu_timeout_attempts; retries; retries--) {
     if (smu_read_address(dev, rsp_addr, &tmp) != SMU_Return_OK) {
       mutex_unlock(&amd_smu_mutex);
-      pr_warn("Failed to perform probe on SMU [%s] RSP!\n", mailbox_str[mailbox]);
+      pr_warn("Failed to perform probe on SMU [%s] RSP!\n", mailbox_name);
 
       return SMU_Return_PCIFailed;
     }
@@ -263,12 +273,12 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
     if (!tmp) {
       pr_warn("SMU [%s] Service Request Failed: Timeout on command (0x%x) after %d "
               "attempts.\n",
-              mailbox_str[mailbox], op, smu_timeout_attempts);
+              mailbox_name, op, smu_timeout_attempts);
 
       return SMU_Return_CommandTimeout;
     }
 
-    pr_warn("SMU [%s] Service Request Failed: Response %Xh was unexpected.\n", mailbox_str[mailbox], tmp);
+    pr_warn("SMU [%s] Service Request Failed: Response %Xh was unexpected.\n", mailbox_name, tmp);
     return tmp;
   }
 
@@ -277,13 +287,13 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   for (i = 0; i < SMU_REQ_MAX_ARGS; i++)
     if (smu_read_address(dev, args_addr + (i * 4), &args->args[i]) !=
         SMU_Return_OK)
-      pr_warn("Failed to fetch SMU [%s] ARG [%d]!\n", mailbox_str[mailbox], i);
+      pr_warn("Failed to fetch SMU [%s] ARG [%d]!\n", mailbox_name, i);
 
   mutex_unlock(&amd_smu_mutex);
 
   pr_debug(
       "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = Ret(%Xh)\n",
-      mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
+      mailbox_name, op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5, tmp);
 
   return SMU_Return_OK;
