@@ -439,60 +439,7 @@ const char* smu_return_to_str(smu_return_val val) {
 }
 
 const char* smu_codename_to_str(smu_obj_t* obj) {
-    switch (obj->codename) {
-        case CODENAME_CASTLEPEAK:
-            return "CastlePeak";
-        case CODENAME_COLFAX:
-            return "Colfax";
-        case CODENAME_MATISSE:
-            return "Matisse";
-        case CODENAME_PICASSO:
-            return "Picasso";
-        case CODENAME_PINNACLERIDGE:
-            return "Pinnacle Ridge";
-        case CODENAME_RAVENRIDGE2:
-            return "Raven Ridge 2";
-        case CODENAME_RAVENRIDGE:
-            return "Raven Ridge";
-        case CODENAME_RENOIR:
-            return "Renoir";
-        case CODENAME_SUMMITRIDGE:
-            return "Summit Ridge";
-        case CODENAME_THREADRIPPER:
-            return "Thread Ripper";
-        case CODENAME_REMBRANDT:
-            return "Rembrandt";
-        case CODENAME_RAPHAEL:
-            return "Raphael";
-        case CODENAME_GRANITERIDGE:
-            return "GraniteRidge";
-        case CODENAME_VERMEER:
-            return "Vermeer";
-        case CODENAME_VANGOGH:
-            return "Van Gogh";
-        case CODENAME_CEZANNE:
-            return "Cezanne";
-        case CODENAME_MILAN:
-            return "Milan";
-        case CODENAME_DALI:
-            return "Dali";
-        case CODENAME_LUCIENNE:
-            return "Lucienne";
-        case CODENAME_NAPLES:
-            return "Naples";
-        case CODENAME_PHOENIX:
-            return "Phoenix";
-        case CODENAME_STRIXPOINT:
-            return "Strix Point";
-        case CODENAME_STRIXHALO:
-            return "Strix Halo";
-        case CODENAME_HAWKPOINT:
-            return "Hawk Point";
-        case CODENAME_STORMPEAK:
-            return "Storm Peak";
-        default:
-            return "Undefined";
-    }
+    return smu_codename_name(obj->codename);
 }
 
 unsigned int smu_pm_tables_supported(smu_obj_t* obj) {

@@ -8,6 +8,7 @@ OUT = monitor_cpu
 SRC = \
       monitor_cpu.c \
       lib/libsmu.c \
+      lib/smu_common.c \
       # EOL
 OBJ = $(SRC:.c=.o)
 

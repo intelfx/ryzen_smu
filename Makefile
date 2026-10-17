@@ -8,7 +8,7 @@ ifneq ($(KERNELRELEASE),)
 # ------------------------------------------------------------------------------
 
 obj-m				:= $(MOD).o
-$(MOD)-y		 	:= drv.o smu.o
+$(MOD)-y		 	:= drv.o smu.o lib/smu_common.o
 
 else
 
@@ -59,6 +59,7 @@ clean:
 dkms-install:
 	install -Dm644 $(CURDIR)/Makefile -t $(DKMS_ROOT_PATH)
 	install -Dm644 $(CURDIR)/*.[ch] -t $(DKMS_ROOT_PATH)
+	install -Dm644 $(CURDIR)/lib/*.[ch] -t $(DKMS_ROOT_PATH)/lib
 
 	sed -e "s/@VERSION@/$(VERSION)/" $(CURDIR)/dkms.conf \
 		| install -Dm644 /dev/stdin $(DKMS_ROOT_PATH)/dkms.conf
