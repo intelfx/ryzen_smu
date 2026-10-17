@@ -405,6 +405,7 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
       g_smu.codename = CODENAME_GRANITERIDGE;
       break;
     case 0x60: // Krackan Point (Ryzen AI 5 340, Ryzen AI 7 350)
+    case 0x68: // Krackan Point 2 / Gorgon Point 3
       g_smu.codename = CODENAME_KRACKANPOINT;
       break;
     case 0x70: // Strix Halo (AI MAX+ 395)
