@@ -63,6 +63,7 @@ permissions (for obvious reasons) at the root path `/sys/kernel/ryzen_smu_drv`:
 - `version`
 - `mp1_if_version`
 - `codename`
+- `codename_name`
 - `smu_args`
 - `mp1_smu_cmd`
 - `hsmp_smu_cmd`
@@ -237,38 +238,45 @@ Note: This file returns a string representation of the "Value" field above.
 Returns a numeric index containing the running processor's codename based on the following
 enumeration:
 
-| Hex | Decimal | Code Name      |
-|:---:|:-------:|:--------------:|
-| 00h | 0       | Unknown        |
-| 01h | 1       | Colfax         |
-| 02h | 2       | Renoir         |
-| 03h | 3       | Picasso        |
-| 04h | 4       | Matisse        |
-| 05h | 5       | Threadripper   |
-| 06h | 6       | Castle Peak    |
-| 07h | 7       | Raven Ridge    |
-| 08h | 8       | Raven Ridge 2  |
-| 09h | 9       | Summit Ridge   |
-| 0Ah | 10      | Pinnacle Ridge |
-| 0Bh | 11      | Rembrandt      |
-| 0Ch | 12      | Vermeer        |
-| 0Dh | 13      | Vangogh        |
-| 0Eh | 14      | Cezanne        |
-| 0Fh | 15      | Milan          |
-| 10h | 16      | Dali           |
-| 11h | 17      | Lucienne       |
-| 12h | 18      | Naples         |
-| 13h | 19      | Chagall        |
-| 14h | 20      | Raphael        |
-| 15h | 21      | Phoenix        |
-| 16h | 22      | Strix Point    |
-| 17h | 23      | Granite Ridge  |
-| 18h | 24      | Hawk Point     |
-| 19h | 25      | Storm Peak     |
-| 1Ah | 26      | Strix Halo     |
-| 1Bh | 27      | Shimada Peak   |
+| Hex | Decimal | Code Name      | `codename_name` |
+|:---:|:-------:|:--------------:|:---------------:|
+| 00h | 0       | Unknown        | Undefined       |
+| 01h | 1       | Colfax         | Colfax          |
+| 02h | 2       | Renoir         | Renoir          |
+| 03h | 3       | Picasso        | Picasso         |
+| 04h | 4       | Matisse        | Matisse         |
+| 05h | 5       | Threadripper   | Threadripper    |
+| 06h | 6       | Castle Peak    | CastlePeak      |
+| 07h | 7       | Raven Ridge    | RavenRidge      |
+| 08h | 8       | Raven Ridge 2  | RavenRidge2     |
+| 09h | 9       | Summit Ridge   | SummitRidge     |
+| 0Ah | 10      | Pinnacle Ridge | PinnacleRidge   |
+| 0Bh | 11      | Rembrandt      | Rembrandt       |
+| 0Ch | 12      | Vermeer        | Vermeer         |
+| 0Dh | 13      | Vangogh        | VanGogh         |
+| 0Eh | 14      | Cezanne        | Cezanne         |
+| 0Fh | 15      | Milan          | Milan           |
+| 10h | 16      | Dali           | Dali            |
+| 11h | 17      | Lucienne       | Lucienne        |
+| 12h | 18      | Naples         | Naples          |
+| 13h | 19      | Chagall        | Chagall         |
+| 14h | 20      | Raphael        | Raphael         |
+| 15h | 21      | Phoenix        | Phoenix         |
+| 16h | 22      | Strix Point    | StrixPoint      |
+| 17h | 23      | Granite Ridge  | GraniteRidge    |
+| 18h | 24      | Hawk Point     | HawkPoint       |
+| 19h | 25      | Storm Peak     | StormPeak       |
+| 1Ah | 26      | Strix Halo     | StrixHalo       |
+| 1Bh | 27      | Shimada Peak   | ShimadaPeak     |
 
 Note: This file returns 2 characters of the 'Decimal' encoded index.
+
+#### `/sys/kernel/ryzen_smu_drv/codename_name`
+
+Returns the running processor's codename as a whitespace-free string followed by a newline (the
+`codename_name` column above). Unlike the numeric index in `codename`, whose values have diverged
+between forks of this driver, the name is stable and is the preferred way to identify the
+processor.
 
 #### `/sys/kernel/ryzen_smu_drv/rsmu_cmd` or `/sys/kernel/ryzen_smu_drv/mp1_smu_cmd` or `/sys/kernel/ryzen_smu_drv/hsmp_smu_cmd`
 

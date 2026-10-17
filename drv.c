@@ -48,7 +48,7 @@ MODULE_LICENSE("GPL");
 #define PCI_DEVICE_ID_AMD_MI200_ROOT        0x14bb
 #define PCI_DEVICE_ID_AMD_MI300_ROOT        0x14f8
 
-#define MAX_ATTRS_LEN                      12
+#define MAX_ATTRS_LEN                      13
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
     #error "Unsupported kernel version. Minimum: v4.19"
@@ -121,6 +121,10 @@ static ssize_t mp1_if_version_show(struct kobject *kobj, struct kobj_attribute *
 
 static ssize_t codename_show(struct kobject *kobj, struct kobj_attribute *attr, char *buff) {
     return sprintf(buff, "%02d\n", smu_get_codename());
+}
+
+static ssize_t codename_name_show(struct kobject *kobj, struct kobj_attribute *attr, char *buff) {
+    return sprintf(buff, "%s\n", smu_codename_name(smu_get_codename()));
 }
 
 /* Serialises readers of the shared table buffer. */
@@ -328,6 +332,7 @@ __RO_ATTR (drv_version);
 __RO_ATTR (version);
 __RO_ATTR (mp1_if_version);
 __RO_ATTR (codename);
+__RO_ATTR (codename_name);
 
 __RO_ATTR (pm_table_size);
 __RO_ATTR (pm_table_version);
@@ -344,6 +349,7 @@ static struct attribute *drv_attrs[MAX_ATTRS_LEN] = {
     &dev_attr_version.attr,
     &dev_attr_mp1_if_version.attr,
     &dev_attr_codename.attr,
+    &dev_attr_codename_name.attr,
 
     &dev_attr_smu_args.attr,
     &dev_attr_mp1_smu_cmd.attr,
