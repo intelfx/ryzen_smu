@@ -215,7 +215,7 @@ static ssize_t rsmu_cmd_store(struct kobject *kobj, struct kobj_attribute *attr,
             op = *(u8*)buff;
             break;
         default:
-            return 0;
+            return -EINVAL;
     }
 
     g_driver.smu_rsp = smu_send_command(g_driver.device, op, &g_driver.smu_args, MAILBOX_TYPE_RSMU);
@@ -242,7 +242,7 @@ static ssize_t mp1_smu_cmd_store(struct kobject *kobj, struct kobj_attribute *at
             op = *(u8*)buff;
             break;
         default:
-            return 0;
+            return -EINVAL;
     }
 
     g_driver.smu_rsp = smu_send_command(g_driver.device, op, &g_driver.smu_args, MAILBOX_TYPE_MP1);
@@ -269,7 +269,7 @@ static ssize_t hsmp_smu_cmd_store(struct kobject* kobj, struct kobj_attribute* a
                 op = *(u8*)buff;
                 break;
             default:
-                return 0;
+                return -EINVAL;
     }
 
     g_driver.smu_rsp = smu_send_command(g_driver.device, op, &g_driver.smu_args, MAILBOX_TYPE_HSMP);
@@ -285,7 +285,7 @@ static ssize_t smu_args_show(struct kobject *kobj, struct kobj_attribute *attr, 
 
 static ssize_t smu_args_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buff, size_t count) {
     if (count != sizeof(u32) * 6)
-        return 0;
+        return -EINVAL;
 
     memcpy(g_driver.smu_args.args, buff, count);
     return count;
@@ -323,7 +323,7 @@ size_t count) {
                 g_driver.smn_result = SMU_Return_OK;
             break;
         default:
-            return 0;
+            return -EINVAL;
     }
 
     return count;
