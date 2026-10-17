@@ -307,8 +307,10 @@ size_t count) {
             // One word written means we read this address at buff[0]
             address = *(u32*)buff;
 
-            if (smu_read_address(g_driver.device, address, &g_driver.smn_result) != SMU_Return_OK)
+            if (smu_read_address(g_driver.device, address, &g_driver.smn_result) != SMU_Return_OK) {
                 pr_debug("Failed to read SMN address 0x%x\n", address);
+                return -EIO;
+            }
             break;
         case (sizeof(u32) * 2):
             // Two words written means we write the second word to the address of the first word
