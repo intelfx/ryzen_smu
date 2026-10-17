@@ -1124,9 +1124,13 @@ u32 smu_update_pmtable_size(u32 version) {
   case CODENAME_GRANITERIDGE:
     switch (version) {
     case 0x620105:
+    case 0x621101:
+    case 0x621102:
       g_smu.pm_dram_map_size = 0x724;
       break;
     case 0x620205:
+    case 0x621201:
+    case 0x621202:
       g_smu.pm_dram_map_size = 0x994;
       break;
     default:
