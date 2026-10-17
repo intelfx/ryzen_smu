@@ -11,6 +11,7 @@ SMN_PATH = FS_PATH + "smn"
 SMU_ARGS = FS_PATH + "smu_args"
 RSMU_CMD = FS_PATH + "rsmu_cmd"
 CN_PATH = FS_PATH + "codename"
+CNN_PATH = FS_PATH + "codename_name"
 PM_PATH = FS_PATH + "pm_table"
 
 
@@ -168,7 +169,14 @@ def test_get_version():
     return False
 
 
-def test_get_codename():
+def getCodeName():
+    # Prefer the stable name; older drivers only provide the numeric index.
+    try:
+        with open(CNN_PATH, "r") as fp:
+            return fp.read().strip()
+    except OSError:
+        pass
+
     codenames = [
         "Unspecified",
         "Colfax",
@@ -192,12 +200,29 @@ def test_get_codename():
         "Chagall",
         "Raphael",
         "Phoenix",
+        "Strix Point",
+        "Granite Ridge",
         "Hawk Point",
+        "Storm Peak",
+        "Strix Halo",
+        "Shimada Peak",
+        "Krackan Point",
+        "Dragon Range",
+        "Turin",
     ]
     args = read_file_str(CN_PATH, 3)
 
-    if args != False and int(args) != 0 and int(args) < len(codenames):
-        print("Processor Code Name: " + codenames[int(args)])
+    if args != False and 0 < int(args) < len(codenames):
+        return codenames[int(args)]
+
+    return False
+
+
+def test_get_codename():
+    codename = getCodeName()
+
+    if codename != False:
+        print("Processor Code Name: " + codename)
         return True
 
     print("Failed to detect processor code name!")

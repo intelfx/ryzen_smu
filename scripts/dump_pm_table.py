@@ -11,6 +11,7 @@ VER_PATH = FS_PATH + "version"
 PM_PATH = FS_PATH + "pm_table"
 PMV_PATH = FS_PATH + "pm_table_version"
 CN_PATH = FS_PATH + "codename"
+CNN_PATH = FS_PATH + "codename_name"
 
 
 def is_root():
@@ -64,6 +65,13 @@ def read_file_str(file, expectedLen=9):
 
 
 def getCodeName():
+    # Prefer the stable name; older drivers only provide the numeric index.
+    try:
+        with open(CNN_PATH, "r") as fp:
+            return fp.read().strip()
+    except OSError:
+        pass
+
     codenames = [
         "Unspecified",
         "Colfax",
@@ -87,10 +95,19 @@ def getCodeName():
         "Chagall",
         "Raphael",
         "Phoenix",
+        "Strix Point",
+        "Granite Ridge",
+        "Hawk Point",
+        "Storm Peak",
+        "Strix Halo",
+        "Shimada Peak",
+        "Krackan Point",
+        "Dragon Range",
+        "Turin",
     ]
-    args = read_file_str(CN_PATH, 2)
+    args = read_file_str(CN_PATH, 3)
 
-    if args != False and int(args) != 0:
+    if args != False and 0 < int(args) < len(codenames):
         return codenames[int(args)]
 
     return False
