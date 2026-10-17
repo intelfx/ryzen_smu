@@ -37,6 +37,7 @@ The following processor code names are supported:
 - [Hawk Point](https://en.wikichip.org/wiki/amd/cores/hawk_point)
 - [Storm Peak](https://en.wikichip.org/wiki/amd/cores/storm_peak)
 - [Krackan Point](https://en.wikichip.org/wiki/amd/cores/krackan_point)
+- [Dragon Range](https://en.wikichip.org/wiki/amd/cores/dragon_range)
 
 In addition, for the following models, the power metrics/monitoring (PM) table (seen in screenshot)
 can also be accessed:
@@ -48,6 +49,7 @@ can also be accessed:
 - Phoenix ( Ryzen 8000 APU Series )
 - Storm Peak ( ThreadRipper 7000 Workstation Series )
 - Raphael ( Ryzen 7000 Desktop Series )
+- Dragon Range ( Ryzen 7045HX Mobile Series )
 - Chagall ( ThreadRipper 5000 Workstation Series )
 - Vermeer ( Ryzen 5000 Desktop Series )
 - Castle Peak ( ThreadRipper 3000 Workstation Series )
@@ -271,6 +273,7 @@ enumeration:
 | 1Ah | 26      | Strix Halo     | StrixHalo       |
 | 1Bh | 27      | Shimada Peak   | ShimadaPeak     |
 | 1Ch | 28      | Krackan Point  | KrackanPoint    |
+| 1Dh | 29      | Dragon Range   | DragonRange     |
 
 Note: This file returns 2 characters of the 'Decimal' encoded index.
 

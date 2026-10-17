@@ -376,7 +376,11 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
       g_smu.codename = CODENAME_CEZANNE;
       break;
     case 0x61:
-      g_smu.codename = CODENAME_RAPHAEL;
+      // Dragon Range (Ryzen 7045HX) is Raphael silicon in the FL1 package.
+      if (pkg_type == 1)
+        g_smu.codename = CODENAME_DRAGONRANGE;
+      else
+        g_smu.codename = CODENAME_RAPHAEL;
       break;
     case 0x74:
       g_smu.codename = CODENAME_PHOENIX;
@@ -444,6 +448,7 @@ int smu_init(struct pci_dev *dev) {
   case CODENAME_MILAN:
   case CODENAME_CHAGALL:
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
     g_smu.addr_rsmu_mb_cmd = 0x3B10524;
@@ -505,6 +510,7 @@ LOG_RSMU:
   case CODENAME_MILAN:
   case CODENAME_CHAGALL:
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
     g_smu.addr_hsmp_mb_cmd = 0x3B10534;
@@ -570,6 +576,7 @@ MP1_DETECT:
   case CODENAME_MILAN:
   case CODENAME_CHAGALL:
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
     g_smu.mp1_if_ver = IF_VERSION_11;
@@ -690,6 +697,7 @@ u64 smu_get_dram_base_address(struct pci_dev *dev) {
     fn[0] = 0x06;
     goto BASE_ADDR_CLASS_1;
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
   case CODENAME_SHIMADAPEAK:
@@ -808,6 +816,7 @@ enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
     fn = 0x05;
     break;
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
   case CODENAME_SHIMADAPEAK:
@@ -911,6 +920,7 @@ enum smu_return_val smu_get_pm_table_version(struct pci_dev *dev,
     fn = 0x08;
     break;
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
   case CODENAME_SHIMADAPEAK:
@@ -1078,6 +1088,7 @@ u32 smu_update_pmtable_size(u32 version) {
     g_smu.pm_dram_base &= 0xFFFFFFFF;
     break;
   case CODENAME_RAPHAEL:
+  case CODENAME_DRAGONRANGE:
     switch (version) {
     case 0x000400: // Some ES-time table? Don't exist in RM.
       g_smu.pm_dram_map_size = 0x948;
@@ -1344,6 +1355,7 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
         g_smu.codename == CODENAME_VERMEER ||
         g_smu.codename == CODENAME_MATISSE ||
         g_smu.codename == CODENAME_RAPHAEL ||
+        g_smu.codename == CODENAME_DRAGONRANGE ||
         g_smu.codename == CODENAME_GRANITERIDGE ||
         g_smu.codename == CODENAME_RENOIR ||
         g_smu.codename == CODENAME_LUCIENNE ||
