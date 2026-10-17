@@ -28,7 +28,7 @@ KMAKE				:= $(MAKE) -C $(KERNEL_BUILD) M=$(CURDIR) $(if $(LLVM),LLVM=$(LLVM))
 obj-m				:= $(MOD).o
 $(MOD)-objs		 	:= drv.o smu.o
 
-.PHONY: all modules clean dkms-install dkms-uninstall insmod checkmod
+.PHONY: all modules modules_install install clean dkms-install dkms-uninstall insmod checkmod
 
 all: modules
 
@@ -37,6 +37,13 @@ debug:
 
 modules:
 	@$(KMAKE) modules
+
+# Kbuild compresses and signs the module as configured for the target kernel
+# and runs depmod.
+modules_install: modules
+	@$(KMAKE) INSTALL_MOD_DIR=extra modules_install
+
+install: modules_install
 
 clean:
 	@$(KMAKE) clean
