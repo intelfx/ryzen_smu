@@ -7,6 +7,7 @@ ifneq ($(KERNELRELEASE),)
 # Kbuild
 # ------------------------------------------------------------------------------
 
+ccflags-y			+= -I$(src)/include
 obj-m				:= $(MOD).o
 $(MOD)-y		 	:= drv.o smu.o lib/smu_common.o
 
@@ -60,6 +61,7 @@ dkms-install:
 	install -Dm644 $(CURDIR)/Makefile -t $(DKMS_ROOT_PATH)
 	install -Dm644 $(CURDIR)/*.[ch] -t $(DKMS_ROOT_PATH)
 	install -Dm644 $(CURDIR)/lib/*.[ch] -t $(DKMS_ROOT_PATH)/lib
+	install -Dm644 $(CURDIR)/include/linux/*.[ch] -t $(DKMS_ROOT_PATH)/include/linux
 
 	sed -e "s/@VERSION@/$(VERSION)/" $(CURDIR)/dkms.conf \
 		| install -Dm644 /dev/stdin $(DKMS_ROOT_PATH)/dkms.conf

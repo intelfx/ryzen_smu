@@ -20,6 +20,8 @@
 #include <asm/processor.h>
 #endif
 
+#include <linux/ryzen_smu.h>
+
 #include "smu.h"
 
 static const char *mailbox_str[MAILBOX_TYPE_COUNT] = {
@@ -94,6 +96,17 @@ static struct {
 //  commands.
 static DEFINE_MUTEX(amd_pci_mutex);
 static DEFINE_MUTEX(amd_smu_mutex);
+
+// Serializes PM table reads, which share the cached DRAM base and mappings,
+// between the sysfs interface and the exported API.
+static DEFINE_MUTEX(amd_pm_mutex);
+
+// State kept for the exported API.
+static struct pci_dev *smu_pci_dev;
+static u32 smu_cpu_family;
+static u32 smu_cpu_model;
+static u32 smu_cpu_stepping;
+static u32 smu_cpu_pkg_type;
 
 int smu_smn_rw_address(struct pci_dev *dev, u32 address, u32 *value,
                        int write) {
@@ -292,6 +305,11 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
   // See: CPUID_Fn80000001_EBX
   pkg_type = cpuid_ebx(0x80000001) >> 28;
 
+  smu_cpu_family = cpu_family;
+  smu_cpu_model = cpu_model;
+  smu_cpu_stepping = stepping;
+  smu_cpu_pkg_type = pkg_type;
+
   pr_info("CPUID: family 0x%X, model 0x%X, stepping 0x%X, package 0x%X\n",
           cpu_family, cpu_model, stepping, pkg_type);
 
@@ -440,6 +458,8 @@ int smu_init(struct pci_dev *dev) {
   // initialized.
   if (g_smu.codename != CODENAME_UNDEFINED)
     return 0;
+
+  smu_pci_dev = dev;
 
   if (smu_resolve_cpu_class(dev))
     return -ENODEV;
@@ -661,6 +681,7 @@ void smu_cleanup(void) {
   // Cached mailbox addresses and PM table geometry are dropped as well so
   // that a later probe starts from scratch.
   memset(&g_smu, 0, sizeof(g_smu));
+  smu_pci_dev = NULL;
   g_smu.codename = CODENAME_UNDEFINED;
   g_smu.mp1_if_ver = IF_VERSION_COUNT;
 }
@@ -1355,8 +1376,9 @@ static bool smu_pm_refresh_declined(enum smu_return_val ret) {
                                   ret == SMU_Return_CmdRejectedPrereq);
 }
 
-enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
-                                      size_t *len) {
+static enum smu_return_val __smu_read_pm_table(struct pci_dev *dev,
+                                               unsigned char *dst,
+                                               size_t *len) {
   u32 ret, version = 0, size;
 
   // The DRAM base does not change after boot meaning it only needs to be
@@ -1501,3 +1523,77 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
 
   return SMU_Return_OK;
 }
+
+enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
+                                      size_t *len) {
+  enum smu_return_val ret;
+
+  mutex_lock(&amd_pm_mutex);
+  ret = __smu_read_pm_table(dev, dst, len);
+  mutex_unlock(&amd_pm_mutex);
+
+  return ret;
+}
+
+struct device *ryzen_smu_get_device(void) {
+  return smu_pci_dev ? &smu_pci_dev->dev : NULL;
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_get_device);
+
+int ryzen_smu_read_pm_table(void *dst, size_t *len) {
+  if (!dst || !len || *len == 0)
+    return -EINVAL;
+
+  if (!smu_pci_dev)
+    return -ENODEV;
+
+  if (smu_read_pm_table(smu_pci_dev, dst, len) != SMU_Return_OK)
+    return -EIO;
+
+  return (int)*len;
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_read_pm_table);
+
+size_t ryzen_smu_get_pm_table_size(void) { return g_smu.pm_dram_map_size; }
+EXPORT_SYMBOL_GPL(ryzen_smu_get_pm_table_size);
+
+enum smu_processor_codename ryzen_smu_get_codename(void) {
+  return g_smu.codename;
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_get_codename);
+
+const char *ryzen_smu_get_codename_name(void) {
+  return smu_codename_name(g_smu.codename);
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_get_codename_name);
+
+int ryzen_smu_get_pm_table_version(u32 *version) {
+  if (!version)
+    return -EINVAL;
+
+  if (!smu_pci_dev)
+    return -ENODEV;
+
+  if (smu_get_pm_table_version(smu_pci_dev, version) != SMU_Return_OK)
+    return -EIO;
+
+  return 0;
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_get_pm_table_version);
+
+enum smu_if_version ryzen_smu_get_mp1_if_version(void) {
+  return g_smu.mp1_if_ver;
+}
+EXPORT_SYMBOL_GPL(ryzen_smu_get_mp1_if_version);
+
+u32 ryzen_smu_get_cpu_family(void) { return smu_cpu_family; }
+EXPORT_SYMBOL_GPL(ryzen_smu_get_cpu_family);
+
+u32 ryzen_smu_get_cpu_model(void) { return smu_cpu_model; }
+EXPORT_SYMBOL_GPL(ryzen_smu_get_cpu_model);
+
+u32 ryzen_smu_get_cpu_stepping(void) { return smu_cpu_stepping; }
+EXPORT_SYMBOL_GPL(ryzen_smu_get_cpu_stepping);
+
+u32 ryzen_smu_get_cpu_package_type(void) { return smu_cpu_pkg_type; }
+EXPORT_SYMBOL_GPL(ryzen_smu_get_cpu_package_type);
