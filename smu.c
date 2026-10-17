@@ -399,6 +399,10 @@ int smu_resolve_cpu_class(struct pci_dev *dev) {
   // Zen 5
   else if (cpu_family == 0x1a) {
     switch (cpu_model) {
+    case 0x02: // Turin (EPYC 9005)
+    case 0x10: // Turin Dense (EPYC 9005)
+      g_smu.codename = CODENAME_TURIN;
+      break;
     case 0x08: // Shimada Peak (Threadripper 9000 / PRO 9000WX, sTR5)
       g_smu.codename = CODENAME_SHIMADAPEAK;
       break;
@@ -482,8 +486,9 @@ int smu_init(struct pci_dev *dev) {
     g_smu.addr_rsmu_mb_args = 0x3B10A88;
     goto LOG_RSMU;
   case CODENAME_SHIMADAPEAK:
-    // sTR5 parts carry the RSMU command and response registers 0x400 above
-    // Storm Peak; the argument block is unchanged. Sources: ZenStates-Core
+  case CODENAME_TURIN:
+    // sTR5 and SP5 Zen 5 parts carry the RSMU command and response registers
+    // 0x400 above Storm Peak; the argument block is unchanged. Sources: ZenStates-Core
     // Zen5Settings_ShimadaPeak.cs, nwinfo ioctl/ryzen_smu.c, live SMU version read.
     g_smu.addr_rsmu_mb_cmd = 0x3B10924;
     g_smu.addr_rsmu_mb_rsp = 0x3B10970;
@@ -514,6 +519,11 @@ LOG_RSMU:
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
     g_smu.addr_hsmp_mb_cmd = 0x3B10534;
+    g_smu.addr_hsmp_mb_rsp = 0x3B10980;
+    g_smu.addr_hsmp_mb_args = 0x3B109E0;
+    goto LOG_HSMP;
+  case CODENAME_TURIN:
+    g_smu.addr_hsmp_mb_cmd = 0x3B10934;
     g_smu.addr_hsmp_mb_rsp = 0x3B10980;
     g_smu.addr_hsmp_mb_args = 0x3B109E0;
     goto LOG_HSMP;
@@ -609,6 +619,12 @@ MP1_DETECT:
     g_smu.addr_mp1_mb_rsp = 0x3b10978;
     g_smu.addr_mp1_mb_args = 0x3b10998;
     break;
+  case CODENAME_TURIN:
+    g_smu.mp1_if_ver = IF_VERSION_11;
+    g_smu.addr_mp1_mb_cmd = 0x3B10930;
+    g_smu.addr_mp1_mb_rsp = 0x3B1097C;
+    g_smu.addr_mp1_mb_args = 0x3B109C4;
+    break;
   case CODENAME_SHIMADAPEAK:
     // MP1 mailbox address is unpublished for this part. Leaving it undefined
     // makes smu_send_command() refuse MP1 requests; the interface version
@@ -694,6 +710,7 @@ u64 smu_get_dram_base_address(struct pci_dev *dev) {
   case CODENAME_CASTLEPEAK:
   case CODENAME_MILAN:
   case CODENAME_CHAGALL:
+  case CODENAME_TURIN:
     fn[0] = 0x06;
     goto BASE_ADDR_CLASS_1;
   case CODENAME_RAPHAEL:
@@ -820,6 +837,7 @@ enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
   case CODENAME_SHIMADAPEAK:
+  case CODENAME_TURIN:
     fn = 0x03;
     break;
   case CODENAME_CEZANNE:
@@ -924,6 +942,7 @@ enum smu_return_val smu_get_pm_table_version(struct pci_dev *dev,
   case CODENAME_GRANITERIDGE:
   case CODENAME_STORMPEAK:
   case CODENAME_SHIMADAPEAK:
+  case CODENAME_TURIN:
     fn = 0x05;
     break;
   case CODENAME_RENOIR:
@@ -1311,6 +1330,15 @@ u32 smu_update_pmtable_size(u32 version) {
       goto UNKNOWN_PM_TABLE_VERSION;
     }
     break;
+  case CODENAME_TURIN:
+    switch (version) {
+    case 0x5E0802: // Upper bound; the exact size is unknown.
+      g_smu.pm_dram_map_size = 0x1A00;
+      break;
+    default:
+      goto UNKNOWN_PM_TABLE_VERSION;
+    }
+    break;
   default:
   UNKNOWN_PM_TABLE_VERSION:
     return SMU_Return_Unsupported;
@@ -1369,7 +1397,8 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
         g_smu.codename == CODENAME_MILAN ||
         g_smu.codename == CODENAME_HAWKPOINT ||
         g_smu.codename == CODENAME_STORMPEAK ||
-        g_smu.codename == CODENAME_SHIMADAPEAK) {
+        g_smu.codename == CODENAME_SHIMADAPEAK ||
+        g_smu.codename == CODENAME_TURIN) {
       ret = smu_get_pm_table_version(dev, &version);
 
       if (ret != SMU_Return_OK) {

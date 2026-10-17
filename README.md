@@ -40,6 +40,7 @@ The following processor code names are supported:
 - [Shimada Peak](https://en.wikichip.org/wiki/amd/cores/shimada_peak)
 - [Krackan Point](https://en.wikichip.org/wiki/amd/cores/krackan_point)
 - [Dragon Range](https://en.wikichip.org/wiki/amd/cores/dragon_range)
+- [Turin](https://en.wikichip.org/wiki/amd/cores/turin) (experimental)
 
 In addition, for the following models, the power metrics/monitoring (PM) table (seen in screenshot)
 can also be accessed:
@@ -278,6 +279,7 @@ enumeration:
 | 1Bh | 27      | Shimada Peak   | ShimadaPeak     |
 | 1Ch | 28      | Krackan Point  | KrackanPoint    |
 | 1Dh | 29      | Dragon Range   | DragonRange     |
+| 1Eh | 30      | Turin          | Turin           |
 
 Note: This file returns 2 characters of the 'Decimal' encoded index.
 

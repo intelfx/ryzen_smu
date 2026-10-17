@@ -34,6 +34,7 @@ static const char* const codename_names[CODENAME_COUNT] = {
     [CODENAME_SHIMADAPEAK]   = "ShimadaPeak",
     [CODENAME_KRACKANPOINT]  = "KrackanPoint",
     [CODENAME_DRAGONRANGE]   = "DragonRange",
+    [CODENAME_TURIN]         = "Turin",
 };
 
 const char* smu_codename_name(smu_processor_codename codename) {

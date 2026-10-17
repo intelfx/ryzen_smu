@@ -74,6 +74,7 @@ typedef enum smu_processor_codename {
     CODENAME_SHIMADAPEAK,
     CODENAME_KRACKANPOINT,
     CODENAME_DRAGONRANGE,
+    CODENAME_TURIN,
     CODENAME_COUNT
 } smu_processor_codename;
 
