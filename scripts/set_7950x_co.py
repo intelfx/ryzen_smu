@@ -1,6 +1,5 @@
 #!/bin/python
 
-from cgi import print_form
 import os
 import struct
 from time import sleep
