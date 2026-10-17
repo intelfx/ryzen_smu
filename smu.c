@@ -1106,6 +1106,9 @@ u32 smu_update_pmtable_size(u32 version) {
     g_smu.pm_dram_base_alt = g_smu.pm_dram_base >> 32;
     g_smu.pm_dram_base &= 0xFFFFFFFF;
     break;
+  case CODENAME_PINNACLERIDGE:
+    g_smu.pm_dram_map_size = 0x28C;
+    break;
   case CODENAME_RAPHAEL:
   case CODENAME_DRAGONRANGE:
     switch (version) {
