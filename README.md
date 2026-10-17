@@ -256,7 +256,7 @@ enumeration:
 | 0Eh | 14      | Cezanne        |
 | 0Fh | 15      | Milan          |
 | 10h | 16      | Dali           |
-| 11h | 17      | Luciene        |
+| 11h | 17      | Lucienne       |
 | 12h | 18      | Naples         |
 | 13h | 19      | Chagall        |
 | 14h | 20      | Raphael        |
@@ -265,6 +265,8 @@ enumeration:
 | 17h | 23      | Granite Ridge  |
 | 18h | 24      | Hawk Point     |
 | 19h | 25      | Storm Peak     |
+| 1Ah | 26      | Strix Halo     |
+| 1Bh | 27      | Shimada Peak   |
 
 Note: This file returns 2 characters of the 'Decimal' encoded index.
 
