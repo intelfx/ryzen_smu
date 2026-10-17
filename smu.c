@@ -1410,8 +1410,6 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
   // Use a minimum interval of 1 ms.
   if (!g_smu.pm_jiffies ||
       time_after(jiffies, g_smu.pm_jiffies + msecs_to_jiffies(1))) {
-    g_smu.pm_jiffies = jiffies;
-
     ret = smu_transfer_table_to_dram(dev);
     // Shimada Peak: the first transfer after boot can be refused with 0xFD
     // (prerequisite unmet) and accepted a moment later (seen once at 111 s of
@@ -1450,6 +1448,8 @@ enum smu_return_val smu_read_pm_table(struct pci_dev *dev, unsigned char *dst,
       if (ret != SMU_Return_OK)
         return ret;
     }
+
+    g_smu.pm_jiffies = jiffies;
   }
 
   // Primary PM Table size
