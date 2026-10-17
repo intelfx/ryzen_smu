@@ -691,8 +691,11 @@ void smu_cleanup(void) {
   }
 
   // Set SMU state to uninitialized, requiring a call to smu_init() again.
+  // Cached mailbox addresses and PM table geometry are dropped as well so
+  // that a later probe starts from scratch.
+  memset(&g_smu, 0, sizeof(g_smu));
   g_smu.codename = CODENAME_UNDEFINED;
-  g_smu.pm_transfer_ok = false;
+  g_smu.mp1_if_ver = IF_VERSION_COUNT;
 }
 
 enum smu_processor_codename smu_get_codename(void) { return g_smu.codename; }
