@@ -1,8 +1,25 @@
 MOD 				:= ryzen_smu
 VERSION				:= 0.1.7
-TARGET				:= $(shell uname -r)
-DKMS_ROOT_PATH			:= /usr/src/$(MOD)-$(VERSION)
 
+ifneq ($(KERNELRELEASE),)
+
+# ------------------------------------------------------------------------------
+# Kbuild
+# ------------------------------------------------------------------------------
+
+obj-m				:= $(MOD).o
+$(MOD)-y		 	:= drv.o smu.o
+
+else
+
+# ------------------------------------------------------------------------------
+# dev Makefile
+# ------------------------------------------------------------------------------
+
+DESTDIR				?=
+DKMS_ROOT_PATH			:= $(DESTDIR)/usr/src/$(MOD)-$(VERSION)
+
+TARGET				:= $(shell uname -r)
 KERNEL_MODULES			:= /lib/modules/$(TARGET)
 
 ifneq ("","$(wildcard /usr/src/linux-headers-$(TARGET)/*)")
@@ -15,33 +32,23 @@ else
 endif
 endif
 
-# A clang-built kernel records clang-only flags (-mstack-alignment,
-# -mretpoline-external-thunk, ...) that gcc rejects, so match its toolchain
-# unless LLVM= is given explicitly.
-ifeq ($(origin LLVM), undefined)
-ifneq ($(shell grep -qs '^CONFIG_CC_IS_CLANG=y' $(KERNEL_BUILD)/.config && echo y),)
-LLVM				:= 1
-endif
-endif
-KMAKE				:= $(MAKE) -C $(KERNEL_BUILD) M=$(CURDIR) $(if $(LLVM),LLVM=$(LLVM))
-
-obj-m				:= $(MOD).o
-$(MOD)-objs		 	:= drv.o smu.o
+KMAKE				:= $(MAKE) -C $(KERNEL_BUILD) M=$(CURDIR)
+SUDO				:= sudo
 
 .PHONY: all modules modules_install install clean dkms-install dkms-uninstall insmod checkmod
 
 all: modules
 
 debug:
-	@$(KMAKE) ccflags-y+=-DDEBUG modules
+	$(KMAKE) ccflags-y+=-DDEBUG modules
 
 modules:
-	@$(KMAKE) modules
+	$(KMAKE) modules
 
 # Kbuild compresses and signs the module as configured for the target kernel
 # and runs depmod.
 modules_install: modules
-	@$(KMAKE) INSTALL_MOD_DIR=extra modules_install
+	$(KMAKE) INSTALL_MOD_DIR=extra modules_install
 
 install: modules_install
 
@@ -50,30 +57,29 @@ clean:
 	rm -rf *.o
 
 dkms-install:
-	mkdir -p $(DKMS_ROOT_PATH)
-	cp $(CURDIR)/dkms.conf $(DKMS_ROOT_PATH)
-	cp $(CURDIR)/Makefile $(DKMS_ROOT_PATH)
-	cp $(CURDIR)/*.c $(DKMS_ROOT_PATH)
-	cp $(CURDIR)/*.h $(DKMS_ROOT_PATH)
+	install -Dm644 $(CURDIR)/Makefile -t $(DKMS_ROOT_PATH)
+	install -Dm644 $(CURDIR)/*.[ch] -t $(DKMS_ROOT_PATH)
 
-	sed -e "s/@CFLGS@/${MCFLAGS}/" \
-		-e "s/@VERSION@/$(VERSION)/" \
-		-i $(DKMS_ROOT_PATH)/dkms.conf
+	sed -e "s/@VERSION@/$(VERSION)/" $(CURDIR)/dkms.conf \
+		| install -Dm644 /dev/stdin $(DKMS_ROOT_PATH)/dkms.conf
 
-	dkms add ryzen_smu/$(VERSION)
-	dkms build ryzen_smu/$(VERSION)
-	dkms install ryzen_smu/$(VERSION)
+dkms: dkms-install
+	dkms add $(MOD)/$(VERSION)
+	dkms build $(MOD)/$(VERSION)
+	dkms install $(MOD)/$(VERSION)
 
 dkms-uninstall:
-	dkms remove ryzen_smu/$(VERSION) --all
-	rm -rf $(DKMS_ROOT_PATH)
+	dkms remove $(MOD)/$(VERSION) --all
+	rm -r $(DKMS_ROOT_PATH)
 
 insmod:
-	sudo rmmod $(MOD).ko; true
-	sudo insmod $(MOD).ko
+	$(SUDO) rmmod $(MOD).ko; true
+	$(SUDO) insmod $(MOD).ko
 
 checkmod:
 	lsmod | grep $(MOD)
 	cat /proc/modules | grep $(MOD)
 	cat /sys/kernel/$(MOD)_drv/drv_version
 	modinfo $(MOD)
+
+endif
