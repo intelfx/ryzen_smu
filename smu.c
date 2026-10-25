@@ -22,6 +22,12 @@
 
 #include "smu.h"
 
+static const char *mailbox_str[MAILBOX_TYPE_COUNT] = {
+  [MAILBOX_TYPE_RSMU] = "RSMU",
+  [MAILBOX_TYPE_MP1] = "MP1",
+  [MAILBOX_TYPE_HSMP] = "HSMP",
+};
+
 static struct {
   enum smu_processor_codename codename;
 
@@ -160,8 +166,8 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
     return SMU_Return_Unsupported;
 
   pr_debug(
-      "SMU Service Request: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
-      op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
+      "SMU [%s] Service Request: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
+      mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5);
 
   mutex_lock(&amd_smu_mutex);
@@ -171,7 +177,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   do
     if (smu_read_address(dev, rsp_addr, &tmp) != SMU_Return_OK) {
       mutex_unlock(&amd_smu_mutex);
-      pr_warn("Failed to perform initial probe on SMU RSP!\n");
+      pr_warn("Failed to perform initial probe on SMU [%s] RSP!\n", mailbox_str[mailbox]);
 
       return SMU_Return_PCIFailed;
     }
@@ -181,8 +187,8 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   //  a new command cannot be issued.
   if (!retries && !tmp) {
     mutex_unlock(&amd_smu_mutex);
-    pr_debug("SMU Service Request Failed: Timeout on initial wait for mailbox "
-             "availability.");
+    pr_debug("SMU [%s] Service Request Failed: Timeout on initial wait for mailbox "
+             "availability.", mailbox_str[mailbox]);
 
     return SMU_Return_CommandTimeout;
   }
@@ -201,7 +207,7 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   do
     if (smu_read_address(dev, rsp_addr, &tmp) != SMU_Return_OK) {
       mutex_unlock(&amd_smu_mutex);
-      pr_warn("Failed to perform probe on SMU RSP!\n");
+      pr_warn("Failed to perform probe on SMU [%s] RSP!\n", mailbox_str[mailbox]);
 
       return SMU_Return_PCIFailed;
     }
@@ -216,14 +222,14 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
     // The RSP register is still 0, the SMU is still processing the request or
     // has frozen. Either way the command has timed out so indicate as such.
     if (!tmp) {
-      pr_debug("SMU Service Request Failed: Timeout on command (0x%x) after %d "
+      pr_debug("SMU [%s] Service Request Failed: Timeout on command (0x%x) after %d "
                "attempts.",
-               op, smu_timeout_attempts);
+               mailbox_str[mailbox], op, smu_timeout_attempts);
 
       return SMU_Return_CommandTimeout;
     }
 
-    pr_debug("SMU Service Request Failed: Response %Xh was unexpected.", tmp);
+    pr_debug("SMU [%s] Service Request Failed: Response %Xh was unexpected.", mailbox_str[mailbox], tmp);
     return tmp;
   }
 
@@ -232,13 +238,13 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   for (i = 0; i < SMU_REQ_MAX_ARGS; i++)
     if (smu_read_address(dev, args_addr + (i * 4), &args->args[i]) !=
         SMU_Return_OK)
-      pr_warn("Failed to fetch SMU ARG [%d]!\n", i);
+      pr_warn("Failed to fetch SMU [%s] ARG [%d]!\n", mailbox_str[mailbox], i);
 
   mutex_unlock(&amd_smu_mutex);
 
   pr_debug(
-      "SMU Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
-      op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
+      "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
+      mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
       args->s.arg5);
 
   return SMU_Return_OK;
