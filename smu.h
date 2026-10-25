@@ -134,13 +134,6 @@ enum smu_if_version smu_get_mp1_if_version(void);
 bool smu_mp1_available(void);
 
 /**
- * Returns true for processors whose SMU refuses a PM table transfer issued before
- * the first DRAM base query; the probe then lets the first read act as the
- * capability test instead of transferring first.
- */
-bool smu_pm_table_base_first(void);
-
-/**
  * Commands the SMU to update the PM table mapped at the DRAM base address.
  *
  * Returns an smu_return_val indicating the status of the operation.

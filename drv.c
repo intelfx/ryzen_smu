@@ -541,43 +541,36 @@ static int ryzen_smu_probe(struct pci_dev *dev, const struct pci_device_id *id) 
     }
 
     // Check that PM table options are supported before adding it to the attr list.
-    // Some SMUs refuse a transfer issued before the DRAM base query (0xFD); for
-    // those the transfer is left to the read below, which queries the base first,
-    // and that read is the capability test. The version query is accepted before
-    // the base on the part this covers, so it keeps its place.
-    ret = smu_pm_table_base_first() ? SMU_Return_OK
-                                    : smu_transfer_table_to_dram(g_driver.device);
+    // The initial read below is the capability test: it queries the DRAM base
+    // before the first transfer.
+    ret = smu_get_pm_table_version(g_driver.device, &g_driver.pm_table_version);
+    if (ret != SMU_Return_OK && ret != SMU_Return_Unsupported) {
+        pr_err("Unable to resolve which PM table version the system uses -- disabling "
+            "feature (%d)\n", ret);
+        goto _CONTINUE_SETUP;
+    }
+
+    g_driver.pm_table = kzalloc(PM_TABLE_MAX_SIZE, GFP_KERNEL);
+    if (g_driver.pm_table == NULL) {
+        pr_err("Unable to allocate kernel buffer for PM table mapping -- disabling PM table "
+            "feature\n");
+        goto _CONTINUE_SETUP;
+    }
+
+    // Perform an initial fill of the data for when the device is queued, saving time
+    pr_debug("Probing the PM table for state changes\n");
+    ret = smu_read_pm_table(dev, g_driver.pm_table, &g_driver.pm_table_read_size);
     if (ret == SMU_Return_OK) {
-        ret = smu_get_pm_table_version(g_driver.device, &g_driver.pm_table_version);
-        if (ret != SMU_Return_OK && ret != SMU_Return_Unsupported) {
-            pr_err("Unable to resolve which PM table version the system uses -- disabling "
-                "feature (%d)\n", ret);
-            goto _CONTINUE_SETUP;
-        }
+        pr_debug("Probe succeeded: read %zu bytes\n", g_driver.pm_table_read_size);
 
-        g_driver.pm_table = kzalloc(PM_TABLE_MAX_SIZE, GFP_KERNEL);
-        if (g_driver.pm_table == NULL) {
-            pr_err("Unable to allocate kernel buffer for PM table mapping -- disabling PM table "
-                "feature\n");
-            goto _CONTINUE_SETUP;
-        }
-
-        // Perform an initial fill of the data for when the device is queued, saving time
-        pr_debug("Probing the PM table for state changes\n");
-        ret = smu_read_pm_table(dev, g_driver.pm_table, &g_driver.pm_table_read_size);
-        if (ret == SMU_Return_OK) {
-            pr_debug("Probe succeeded: read %zu bytes\n", g_driver.pm_table_read_size);
-
-            // A non-zero size publishes the binary pm_table attribute below; the size and
-            // version attributes follow it only if that file was created.
-            dev_battr_pm_table.size = g_driver.pm_table_read_size;
-        }
-        else
-            pr_err("Failed to probe the PM table -- disabling feature (%d)\n", ret);
+        // A non-zero size publishes the binary pm_table attribute below; the size and
+        // version attributes follow it only if that file was created.
+        dev_battr_pm_table.size = g_driver.pm_table_read_size;
     }
-    else {
+    else if (ret == SMU_Return_Unsupported)
         pr_debug("Notice: PM tables are not supported for the current platform (%d)\n", ret);
-    }
+    else
+        pr_err("Failed to probe the PM table -- disabling feature (%d)\n", ret);
 
 _CONTINUE_SETUP:
     // Allocate the sysfs attr group with the parameters for use

@@ -719,10 +719,6 @@ enum smu_if_version smu_get_mp1_if_version(void) { return g_smu.mp1_if_ver; }
 
 bool smu_mp1_available(void) { return g_smu.addr_mp1_mb_cmd != 0; }
 
-bool smu_pm_table_base_first(void) {
-  return g_smu.codename == CODENAME_SHIMADAPEAK;
-}
-
 u64 smu_get_dram_base_address(struct pci_dev *dev) {
   u32 fn[3], ret, parts[2];
   smu_req_args_t args;
