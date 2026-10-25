@@ -59,9 +59,6 @@ static struct {
   //  refresh the metrics table.
   unsigned long pm_jiffies;
 
-  // Set once a PM table transfer has succeeded in this load.
-  bool pm_transfer_ok;
-
   // Virtual addresses mapped to physical DRAM bases for PM table.
   u8 __iomem *pm_table_virt_addr;
   u8 __iomem *pm_table_virt_addr_alt;
@@ -86,7 +83,6 @@ static struct {
     .pm_dram_map_size = 0,
     .pm_dram_map_size_alt = 0,
     .pm_jiffies = 0,
-    .pm_transfer_ok = false,
 
     .pm_table_virt_addr = NULL,
     .pm_table_virt_addr_alt = NULL,
@@ -1474,31 +1470,8 @@ static enum smu_return_val __smu_read_pm_table(struct pci_dev *dev,
   if (!g_smu.pm_jiffies ||
       time_after(jiffies, g_smu.pm_jiffies + msecs_to_jiffies(1))) {
     ret = smu_transfer_table_to_dram(dev);
-    // Shimada Peak: the first transfer after boot can be refused with 0xFD
-    // (prerequisite unmet) and accepted a moment later (seen once at 111 s of
-    // uptime, accepted 230 ms later). Retry once, and only until the first
-    // transfer of this load has succeeded; a persistent refusal is an error.
-    if (ret == SMU_Return_CmdRejectedPrereq && !g_smu.pm_transfer_ok &&
-        g_smu.codename == CODENAME_SHIMADAPEAK) {
-      // The first transfer after boot can be refused with 0xFD and accepted a
-      // moment later (seen once, accepted 250 ms on); allow it one second.
-      int tries = 0;
-
-      do {
-        msleep(250);
-        ret = smu_transfer_table_to_dram(dev);
-        tries++;
-      } while (ret == SMU_Return_CmdRejectedPrereq && tries < 4);
-      if (ret == SMU_Return_OK)
-        pr_info("PM table transfer refused (0xFD), accepted after %d retr%s\n",
-                tries, tries == 1 ? "y" : "ies");
-      else
-        pr_warn_ratelimited("PM table transfer refused (0x%X), %d retries\n",
-                            ret, tries);
-    }
     if (ret != SMU_Return_OK)
       return ret;
-    g_smu.pm_transfer_ok = true;
 
     if (g_smu.pm_dram_map_size_alt) {
       ret = smu_transfer_2nd_table_to_dram(dev);
