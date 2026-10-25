@@ -4,6 +4,7 @@
 
 #include <asm/io.h>
 #include <linux/delay.h>
+#include <linux/ktime.h>
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/time.h>
@@ -834,6 +835,37 @@ BASE_ADDR_CLASS_3:
   return (u64)parts[1] << 32 | parts[0];
 }
 
+// The SMU serves at most one table transfer per internal cycle of about 1 ms and
+// refuses any further one in that cycle with 0xFD; a cycle is occasionally
+// skipped. A refusal (0xFD, or 0xFC for busy) is retried at a fraction of the
+// cycle until a deadline that covers a few cycles.
+#define SMU_TRANSFER_RETRY_US 5000
+
+static enum smu_return_val smu_send_transfer(struct pci_dev *dev, u32 fn,
+                                             const smu_req_args_t *args) {
+  ktime_t deadline = ktime_add_us(ktime_get(), SMU_TRANSFER_RETRY_US);
+  enum smu_return_val ret;
+  smu_req_args_t req;
+  int tries = 0;
+
+  for (;;) {
+    req = *args;
+    ret = smu_send_command(dev, fn, &req, MAILBOX_TYPE_RSMU);
+    if (ret != SMU_Return_CmdRejectedPrereq && ret != SMU_Return_CmdRejectedBusy)
+      break;
+    if (ktime_after(ktime_get(), deadline))
+      break;
+    tries++;
+    usleep_range(100, 200);
+  }
+
+  if (tries)
+    pr_debug("PM table transfer 0x%x: %d retr%s, result %Xh\n", fn, tries,
+             tries == 1 ? "y" : "ies", ret);
+
+  return ret;
+}
+
 enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
   enum smu_return_val ret;
   smu_req_args_t args;
@@ -897,7 +929,7 @@ enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
     return SMU_Return_Unsupported;
   }
 
-  ret = smu_send_command(dev, fn, &args, MAILBOX_TYPE_RSMU);
+  ret = smu_send_transfer(dev, fn, &args);
   if (ret == SMU_Return_OK)
     g_smu.pm_transfer_ok = true;
 
@@ -942,7 +974,7 @@ enum smu_return_val smu_transfer_2nd_table_to_dram(struct pci_dev *dev) {
     return SMU_Return_Unsupported;
   }
 
-  return smu_send_command(dev, fn, &args, MAILBOX_TYPE_RSMU);
+  return smu_send_transfer(dev, fn, &args);
 }
 
 enum smu_return_val smu_get_pm_table_version(struct pci_dev *dev,
