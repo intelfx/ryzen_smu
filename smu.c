@@ -867,7 +867,6 @@ static enum smu_return_val smu_send_transfer(struct pci_dev *dev, u32 fn,
 }
 
 enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
-  enum smu_return_val ret;
   smu_req_args_t args;
   u32 fn;
 
@@ -929,11 +928,7 @@ enum smu_return_val smu_transfer_table_to_dram(struct pci_dev *dev) {
     return SMU_Return_Unsupported;
   }
 
-  ret = smu_send_transfer(dev, fn, &args);
-  if (ret == SMU_Return_OK)
-    g_smu.pm_transfer_ok = true;
-
-  return ret;
+  return smu_send_transfer(dev, fn, &args);
 }
 
 enum smu_return_val smu_transfer_2nd_table_to_dram(struct pci_dev *dev) {
@@ -1413,11 +1408,6 @@ u32 smu_update_pmtable_size(u32 version) {
   return SMU_Return_OK;
 }
 
-static bool smu_pm_refresh_declined(enum smu_return_val ret) {
-  return g_smu.pm_transfer_ok && (ret == SMU_Return_CmdRejectedBusy ||
-                                  ret == SMU_Return_CmdRejectedPrereq);
-}
-
 static enum smu_return_val __smu_read_pm_table(struct pci_dev *dev,
                                                unsigned char *dst,
                                                size_t *len) {
@@ -1505,18 +1495,12 @@ static enum smu_return_val __smu_read_pm_table(struct pci_dev *dev,
         pr_warn_ratelimited("PM table transfer refused (0x%X), %d retries\n",
                             ret, tries);
     }
-    // The SMU may decline a refresh issued too soon after the previous one
-    // (0xFC/0xFD, seen on Vermeer right after the probe's transfer). Once a
-    // transfer has succeeded the DRAM copy is valid, so serve it unchanged.
-    if (smu_pm_refresh_declined(ret))
-      ret = SMU_Return_OK;
     if (ret != SMU_Return_OK)
       return ret;
+    g_smu.pm_transfer_ok = true;
 
     if (g_smu.pm_dram_map_size_alt) {
       ret = smu_transfer_2nd_table_to_dram(dev);
-      if (smu_pm_refresh_declined(ret))
-        ret = SMU_Return_OK;
       if (ret != SMU_Return_OK)
         return ret;
     }
