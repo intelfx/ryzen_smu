@@ -243,9 +243,9 @@ enum smu_return_val smu_send_command(struct pci_dev *dev, u32 op,
   mutex_unlock(&amd_smu_mutex);
 
   pr_debug(
-      "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
+      "SMU [%s] Service Response: ID(0x%x) Args(0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x) = Ret(%Xh)",
       mailbox_str[mailbox], op, args->s.arg0, args->s.arg1, args->s.arg2, args->s.arg3, args->s.arg4,
-      args->s.arg5);
+      args->s.arg5, tmp);
 
   return SMU_Return_OK;
 }
