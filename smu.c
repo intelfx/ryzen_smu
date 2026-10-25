@@ -1421,6 +1421,11 @@ static enum smu_return_val __smu_read_pm_table(struct pci_dev *dev,
   if (g_smu.pm_dram_base == 0 || g_smu.pm_dram_map_size == 0) {
     g_smu.pm_dram_base = smu_get_dram_base_address(dev);
 
+    if (g_smu.pm_dram_base == SMU_Return_Unsupported) {
+      g_smu.pm_dram_base = 0;
+      return SMU_Return_Unsupported;
+    }
+
     // Values up to 0xFF are SMU return codes, not addresses. Never hand the
     // value back as a status: a base of 0x01 would otherwise read as
     // SMU_Return_OK.
